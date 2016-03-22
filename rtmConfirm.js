@@ -26,7 +26,7 @@ if(typeof Object.create != 'function') {
   })();
 }
 
-(function($, window, document, undefined) {
+(function($) {
 
   var TEMPLATE_STRING = ['<div class="{{prefix}}-modal" data-modal-type="{{type}}">',
     '  <div class="{{prefix}}-container">',
@@ -293,4 +293,4 @@ if(typeof Object.create != 'function') {
     });
   };
 
-})(jQuery, window, document);
+})(jQuery);
