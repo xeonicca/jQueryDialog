@@ -93,14 +93,13 @@ if(typeof Object.create != 'function') {
     return this.each(function() {
       var $modal = $(this);
       var thisModal = $modal.data('rtmModal');
-      var thisConfig, modalFactory, thisModal;
+      var thisConfig, thisModal;
 
       if(thisModal) {
         thisModal[config]();
       } else {
         thisConfig = processConfig(config);
-        modalFactory = new ModalFactory();
-        thisModal = modalFactory.createModal(thisConfig);
+        thisModal = ModalFactory.createModal(thisConfig);
         $modal.data('rtmModal', thisModal);
         thisModal.init($modal);
       }
@@ -257,19 +256,19 @@ if(typeof Object.create != 'function') {
 
   AlertModal.showModal = ConfirmModal.showModal;
 
-  var ModalFactory = function() {};
-  ModalFactory.prototype.modalClass = Modal;
-  ModalFactory.prototype.createModal = function(config) {
-    switch(config.modalType) {
-      case "alert":
-        this.modalClass = AlertModal;
-        break;
-      case "confirm":
-        this.modalClass = ConfirmModal;
-        break;
+  var ModalFactory = {
+    createModal: function(config) {
+      switch(config.modalType) {
+        case "alert":
+          return AlertModal.create(config);
+          break;
+        case "confirm":
+          return ConfirmModal.create(config);
+          break;
+        default:
+          return Modal.create(config);
+      }
     }
-
-    return this.modalClass.create(config);
   };
 
   // a simple template
