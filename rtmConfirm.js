@@ -48,6 +48,8 @@ if(typeof Object.create != 'function') {
     return true;
   };
 
+  var $body = $('body');
+
   function whichAnimationEvent() {
     var t, el = document.createElement('div'),
       animations = {
@@ -75,13 +77,15 @@ if(typeof Object.create != 'function') {
     modalTitle: '',
     modalContent: '',
     modalConfirmText: 'Confirm',
-    modalCancelText: 'Cancel'
+    modalCancelText: 'Cancel',
+    overlay: 0.3,
+    overlayZIndex: 1000
   };
 
   $.rtmModal = function(config) {
     var thisConfig = processConfig(config);
     var $modal = _generateHTML(thisConfig);
-    $modal.appendTo('body').rtmModal(thisConfig);
+    $modal.appendTo($body).rtmModal(thisConfig);
     return $modal;
   };
 
@@ -123,17 +127,33 @@ if(typeof Object.create != 'function') {
       result = fn();
       result ? ($d.resolve()) : ($d.reject());
     } else if(typeof fn === 'string') {
-     fn = createAnimationEndCallback(fn, $d);
-     fn.call(this);
+      fn = createAnimationEndCallback(fn, $d);
+      fn.call(this);
+    }
+  }
+
+  function getOverlay(zIndex) {
+    if($('#rtm_overlay').length) {
+      return $('#rtm_overlay');
+    } else {
+      return $('<div id=rtm_overlay></div>').css({
+        'position': 'fixed',
+        'top': 0,
+        'right': 0,
+        'bottom': 0,
+        'left': 0,
+        'z-index': 1040,
+        'background-color': '#000',
+        'opacity': 0,
+        'z-index': zIndex
+      }).appendTo($body);
     }
   }
 
   var Modal = {
     create: function(config) {
       var instance = Object.create(this);
-      $.each(config, function(key, value) {
-        instance[key] = value;
-      });
+      instance.config = config;
       return instance;
     },
 
@@ -141,12 +161,12 @@ if(typeof Object.create != 'function') {
       var self = this,
         onBeforeShow, onBeforeClose;
       self.$modal = $modal;
-      onBeforeShow = self.onBeforeShow;
+      onBeforeShow = self.config.onBeforeShow;
       self.onBeforeShow = function($d) {
         deferredDispatch.call(self, onBeforeShow, $d);
         return $d;
       };
-      onBeforeClose = self.onBeforeClose;
+      onBeforeClose = self.config.onBeforeClose;
       self.onBeforeClose = function($d) {
         deferredDispatch.call(self, onBeforeClose, $d);
         return $d;
@@ -158,6 +178,7 @@ if(typeof Object.create != 'function') {
     show: function() {
       var self = this;
       var $d = $.Deferred();
+      self.showOverlay();
       self.onBeforeShow($d).always(function() {
         self.showModal();
       });
@@ -168,6 +189,24 @@ if(typeof Object.create != 'function') {
       var $d = $.Deferred();
       self.onBeforeClose($d).always(function() {
         self.hideModal();
+      });
+      self.hideOverlay();
+    },
+
+    showOverlay: function() {
+      this.$overlay = getOverlay(this.config.overlayZIndex);
+      this.$overlay.animate({
+        opacity: this.config.overlay
+      }, 200);
+      this.$modal.css('z-index', this.config.overlayZIndex+1);
+    },
+
+    hideOverlay: function() {
+      var self = this;
+      self.$overlay.animate({
+        opacity: 0
+      }, 200, 'swing', function() {
+        self.$overlay.remove();
       });
     },
 
@@ -193,9 +232,9 @@ if(typeof Object.create != 'function') {
     self.$modal.find('[data-option]').one('click', function() {
       var choice = $(this).data('option');
       if(choice === 'confirm') {
-        self.onConfirm(true);
+        self.config.onConfirm(true);
       } else {
-        self.onCancel(false);
+        self.config.onCancel(false);
       }
       self.hide();
     });
@@ -211,15 +250,12 @@ if(typeof Object.create != 'function') {
   AlertModal.bindModal = function() {
     var self = this;
     self.$modal.find('[data-option]').one('click', function() {
-      self.onConfirm(true);
+      self.config.onConfirm(true);
       self.hide();
     });
   };
 
-  AlertModal.showModal = function() {
-    this.bindModal();
-    Modal.showModal.call(this);
-  };
+  AlertModal.showModal = ConfirmModal.showModal;
 
   var ModalFactory = function() {};
   ModalFactory.prototype.modalClass = Modal;
